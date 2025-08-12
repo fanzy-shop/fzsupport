@@ -82,22 +82,43 @@ app.use((req, res, next) => {
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/telegram-chat-app';
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    
-    // Initialize Telegram bot after MongoDB connection
-    setupBot(io);
-    
+console.log('Attempting to connect to MongoDB...');
+console.log('MongoDB URI:', MONGODB_URI ? 'Set (hidden for security)' : 'Not set');
+
+mongoose.connect(MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+  socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+})
+.then(() => {
+  console.log('✅ Connected to MongoDB successfully');
+  
+  // Initialize Telegram bot after MongoDB connection
+  setupBot(io);
+  
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🏥 Health check available at: http://localhost:${PORT}/api/health`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+})
+.catch((error) => {
+  console.error('❌ MongoDB connection error:', error.message);
+  console.error('💡 Make sure MongoDB is running or MONGODB_URI is set correctly');
+  
+  // In production, exit the process
+  if (process.env.NODE_ENV === 'production') {
+    console.error('🚨 Exiting due to MongoDB connection failure in production');
+    process.exit(1);
+  } else {
+    console.log('⚠️  Continuing without MongoDB in development mode');
+    // Start server without MongoDB for development
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check available at: http://localhost:${PORT}/api/health`);
+      console.log(`🚀 Server running on port ${PORT} (without MongoDB)`);
+      console.log(`🏥 Health check available at: http://localhost:${PORT}/api/health`);
     });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  });
+  }
+});
 
 export { io }; 

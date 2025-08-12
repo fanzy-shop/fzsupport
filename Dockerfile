@@ -7,18 +7,17 @@ RUN apk add --no-cache curl
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY package*.json ./
-COPY backend/package*.json ./backend/
-COPY frontend/package*.json ./frontend/
-
-# Install dependencies (using npm install instead of npm ci)
-RUN npm install --production && \
-    cd backend && npm install --production && \
-    cd ../frontend && npm install --production
-
-# Copy source code
+# Copy all source code first
 COPY . .
+
+# Install root dependencies
+RUN npm install --production
+
+# Install backend dependencies
+RUN cd backend && npm install --production
+
+# Install frontend dependencies
+RUN cd frontend && npm install --production
 
 # Build frontend
 RUN cd frontend && npm run build
